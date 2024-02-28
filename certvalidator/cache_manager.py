@@ -35,8 +35,12 @@ def replace_key(original_request, new_request_key, response):
     if not is_enabled():
         return
     session.cache.delete(requests=[original_request])
-    max_expiration = datetime.datetime.utcnow() + MAX_CACHE_AGE
-    expiration = response.expires if response.expires and response.expires < max_expiration else max_expiration
+    if response.expires:
+        timezone = response.expires.tzinfo
+        max_expiration = datetime.datetime.now(tz=timezone) + MAX_CACHE_AGE
+        expiration = response.expires if response.expires < max_expiration else max_expiration
+    else:
+        expiration = datetime.datetime.now(tz=datetime.timezone.utc) + MAX_CACHE_AGE
     session.cache.save_response(response=response, cache_key=session.cache.create_key(new_request_key), expires=expiration)
 
 def create_redis_cached_session(connection, namespace='certvalidator_cache'):
